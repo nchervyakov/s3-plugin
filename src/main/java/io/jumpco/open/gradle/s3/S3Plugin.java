@@ -22,7 +22,7 @@ public class S3Plugin implements Plugin<Project> {
         uploadContainer.all(new Action<S3UploadConfig>() {
             @Override
             public void execute(S3UploadConfig config) {
-                project.getLogger().quiet("S3Upload:config:" + config);
+                project.getLogger().info("S3Upload:config:" + config);
                 project.getTasks().register(config.getName() + "UploadTask", S3Upload.class, new Action<S3Upload>() {
                     @Override
                     public void execute(S3Upload task) {
@@ -31,7 +31,7 @@ public class S3Plugin implements Plugin<Project> {
                         task.setOverwrite(config.getOverwrite().getOrElse(false));
                         task.setKeyPrefix(config.getKeyPrefix().getOrNull());
                         task.setFile(config.getFile().getOrNull());
-                        project.getLogger().quiet("S3Upload:registered:" + task.getName() + ":" + config);
+                        project.getLogger().info("S3Upload:registered:" + task.getName() + ":" + config);
                     }
                 });
             }
@@ -39,7 +39,7 @@ public class S3Plugin implements Plugin<Project> {
         downloadContainer.all(new Action<S3DownloadConfig>() {
             @Override
             public void execute(S3DownloadConfig config) {
-                project.getLogger().quiet("S3Download:config:" + config);
+                project.getLogger().info("S3Download:config:" + config);
                 project.getTasks().register(config.getName() + "DownloadTask", S3Download.class, new Action<S3Download>() {
                     @Override
                     public void execute(S3Download task) {
@@ -48,7 +48,7 @@ public class S3Plugin implements Plugin<Project> {
                         task.setKey(config.getKey().getOrNull());
                         task.setFile(config.getFile().getOrNull());
                         task.setDestDir(config.getDestDir().getOrNull());
-                        project.getLogger().quiet("S3Download:registered:" + task.getName() + ":" + config);
+                        project.getLogger().info("S3Download:registered:" + task.getName() + ":" + config);
                     }
                 });
             }
