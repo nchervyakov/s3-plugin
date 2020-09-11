@@ -1,4 +1,4 @@
-package io.jumpco.open.gradle;
+package io.jumpco.open.gradle.s3;
 
 import com.amazonaws.auth.AWSCredentialsProviderChain;
 import com.amazonaws.auth.EC2ContainerCredentialsProviderWrapper;
@@ -13,6 +13,10 @@ import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Optional;
 
 public abstract class S3Task extends DefaultTask {
+    @Override
+    public String getGroup() {
+        return "s3";
+    }
 
     @Optional
     @Input

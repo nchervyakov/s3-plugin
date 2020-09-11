@@ -51,14 +51,28 @@ The `s3.bucket` property sets a default S3 bucket that is common to all tasks. T
 s3 {
     bucket = 'my.default.bucketname'
 }
+
+s3Uploads {
+    jobName {
+        key = 'target-filename'
+        file = 'source-filename'
+    }
+}
+
+s3Downloads {
+    dlJob {
+        keyPrefix = 'folder'
+        destDir = 'targetDir'
+    }   
+}
 ```
 
-## Tasks
+`dlJob` will result in task `dlJobDownloadTask`
 
-The following Gradle tasks are provided.
+`jobName` will result in task `jobNameUploadTask`
 
 
-### S3Upload
+### s3Uploads
 
 Uploads one or more files to S3. This task has two modes of operation: single file upload and directory upload (including recursive upload of all child subdirectories). Properties that apply to both modes:
 
@@ -79,7 +93,7 @@ For a directory upload:
 
 A directory upload will always overwrite existing content if it already exists under the specified S3 prefix.
 
-### S3Download
+### s3Downloads
 
 Downloads one or more S3 objects. This task has two modes of operation: single file
 download and recursive download. Properties that apply to both modes:
@@ -109,9 +123,11 @@ top/README
 a recursive download:
 
 ```groovy
-task downloadRecursive(type: S3Download) {
-  keyPrefix = 'top/foo/'
-  destDir = 'local-dir'
+s3Downloads {  
+    downloadRecursive{
+        keyPrefix = 'top/foo/'
+        destDir = 'local-dir'
+    }
 }
 ```
 
@@ -130,15 +146,16 @@ For example:
 
 ```groovy
 def localTree = 'path/to/some/location'
-
-task downloadRecursive(type: S3Download) {
-    bucket = 's3-bucket-name'
-    keyPrefix = "${localTree}"
-    destDir = "${buildDir}/download-root"
+s3Downloads {
+    downloadRecursive {
+        bucket = 's3-bucket-name'
+        keyPrefix = "${localTree}"
+        destDir = "${buildDir}/download-root"
+    }
 }
 
 // prune and re-root the downloaded tree, removing the keyPrefix
-task copyDownload(type: Copy, dependsOn: downloadRecursive) {
+task copyDownload(type: Copy, dependsOn: 'downloadRecursiveDownloadTask') {
     from "${buildDir}/download-root/${localTree}"
     into "${buildDir}/pruned-tree"
 }

@@ -1,4 +1,4 @@
-package io.jumpco.open.gradle;
+package io.jumpco.open.gradle.s3;
 
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.transfer.Transfer;
@@ -63,39 +63,44 @@ public class S3Download extends S3Task {
     @TaskAction
     public void task() throws InterruptedException {
 
-        Transfer transfer;
+        Transfer transfer = null;
 
         if (getBucket() == null) {
             throw new GradleException("Invalid parameters: [bucket] was not provided and/or a default was not set");
         }
 
-        // directory download
         if (keyPrefix != null && destDir != null) {
             if (key != null || file != null) {
                 throw new GradleException("Invalid parameters: [key, file] are not valid for S3Download recursive");
             }
-            if (getLogger().isQuietEnabled()) {
-                getLogger().quiet("S3 Download recursive s3://" + getBucket() + "/" + keyPrefix + " → " + destDir + "/");
+            getLogger().lifecycle(getName() + ":directory:s3://" + getBucket() + "/" + keyPrefix + " → " + destDir + "/");
+            if (!S3BaseConfig.isTesting()) {
+                transfer = TransferManagerBuilder.standard().withS3Client(getS3Client()).build()
+                        .downloadDirectory(getBucket(), keyPrefix, getProject().file(destDir));
             }
-            transfer = TransferManagerBuilder.standard().withS3Client(getS3Client()).build()
-                    .downloadDirectory(getBucket(), keyPrefix, getProject().file(destDir));
         } else if (key != null && file != null) {
             if (keyPrefix != null || destDir != null) {
                 throw new GradleException("Invalid parameters: [keyPrefix, destDir] are not valid for S3 Download single file");
             }
-            if (getLogger().isQuietEnabled()) {
-                getLogger().quiet("S3 Download s3://" + getBucket() + "/" + key + " → " + file);
-            }
+            getLogger().lifecycle(getName()+ ":file:s3://" + getBucket() + "/" + key + " → " + file);
             File f = new File(file);
             f.getParentFile().mkdirs();
-            transfer = TransferManagerBuilder.standard().withS3Client(getS3Client()).build()
-                    .download(getBucket(), key, f);
+            if (!S3BaseConfig.isTesting()) {
+                transfer = TransferManagerBuilder.standard().withS3Client(getS3Client()).build()
+                        .download(getBucket(), key, f);
+            }
         } else {
             throw new GradleException("Invalid parameters: one of [key, file] or [keyPrefix, destDir] pairs must be specified for S3 Download");
         }
-
-        ProgressListener listener = new S3Listener(transfer, getLogger());
-        transfer.addProgressListener(listener);
-        transfer.waitForCompletion();
+        if (!S3BaseConfig.isTesting()) {
+            if (transfer == null) {
+                throw new GradleException("Expected transfer");
+            }
+            ProgressListener listener = new S3Listener(transfer, getLogger());
+            transfer.addProgressListener(listener);
+            transfer.waitForCompletion();
+        } else {
+            getLogger().lifecycle(getName() + "testing:" + getBucket());
+        }
     }
 }

@@ -1,9 +1,10 @@
-package io.jumpco.open.gradle;
+package io.jumpco.open.gradle.s3;
 
 public class S3Extension {
     private String profile;
     private String region;
     private String bucket;
+
 
     public String getProfile() {
         return profile;
@@ -27,5 +28,14 @@ public class S3Extension {
 
     public void setBucket(String bucket) {
         this.bucket = bucket;
+    }
+
+    @Override
+    public String toString() {
+        return "S3Extension{" +
+                "profile='" + profile + '\'' +
+                ", region='" + region + '\'' +
+                ", bucket='" + bucket + '\'' +
+                '}';
     }
 }

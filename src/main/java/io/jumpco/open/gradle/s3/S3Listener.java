@@ -1,4 +1,4 @@
-package io.jumpco.open.gradle;
+package io.jumpco.open.gradle.s3;
 
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressListener;

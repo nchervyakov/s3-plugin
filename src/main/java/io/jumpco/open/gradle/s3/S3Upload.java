@@ -1,4 +1,4 @@
-package io.jumpco.open.gradle;
+package io.jumpco.open.gradle.s3;
 
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.transfer.Transfer;
@@ -82,32 +82,34 @@ public class S3Upload extends S3Task {
             if (getKey() != null || getFile() != null) {
                 throw new GradleException("Invalid parameters: [key, file] are not valid for S3 Upload directory");
             }
-            if (getLogger().isQuietEnabled()) {
-                getLogger().quiet("S3 Upload directory " + getProject().file(getSourceDir()) + "/ → s3://" + getBucket() + "/" + getKeyPrefix());
+            getLogger().lifecycle(getName() + ":directory:" + getProject().file(getSourceDir()) + "/ → s3://" + getBucket() + "/" + getKeyPrefix());
+            if (!S3BaseConfig.isTesting()) {
+                Transfer transfer = TransferManagerBuilder.standard().withS3Client(getS3Client()).build()
+                        .uploadDirectory(getBucket(), getKeyPrefix(), getProject().file(sourceDir), true);
+
+
+                ProgressListener listener = new S3Listener(transfer, getLogger());
+                transfer.addProgressListener(listener);
+                transfer.waitForCompletion();
+            } else {
+                getLogger().lifecycle("testing:upload:" + getBucket());
             }
-
-            Transfer transfer = TransferManagerBuilder.standard().withS3Client(getS3Client()).build()
-                    .uploadDirectory(getBucket(), getKeyPrefix(), getProject().file(sourceDir), true);
-
-
-            ProgressListener listener = new S3Listener(transfer, getLogger());
-            transfer.addProgressListener(listener);
-            transfer.waitForCompletion();
         } else if (getKey() != null && getFile() != null) {
-            if (getS3Client().doesObjectExist(getBucket(), getKey())) {
-                if (isOverwrite()) {
-                    if (getLogger().isQuietEnabled()) {
-                        getLogger().quiet("S3 Upload " + getFile() + "/ → s3://" + getBucket() + "/" + getKey() + " with overwrite");
+            if (!S3BaseConfig.isTesting()) {
+                if (getS3Client().doesObjectExist(getBucket(), getKey())) {
+                    if (isOverwrite()) {
+                        getLogger().lifecycle(getName() + ":" + getFile() + "/ → s3://" + getBucket() + "/" + getKey() + " with overwrite");
+                        getS3Client().putObject(bucket, key, new File(file));
+                    } else {
+                        getLogger().warn("s3://" + getBucket() + "/" + getKey() + " exists, not overwriting");
                     }
-                    getS3Client().putObject(bucket, key, new File(file));
                 } else {
-                    getLogger().warn("s3://" + getBucket() + "/" + getKey() + " exists, not overwriting");
+                    getLogger().lifecycle(getName() + ":" + getFile() + "/ → s3://" + getBucket() + "/" + getKey());
+                    getS3Client().putObject(bucket, key, new File(file));
                 }
             } else {
-                if (getLogger().isQuietEnabled()) {
-                    getLogger().quiet("S3 Upload " + getFile() + "/ → s3://" + getBucket() + "/" + getKey());
-                }
-                getS3Client().putObject(bucket, key, new File(file));
+                getLogger().lifecycle(getName() + ":" + getFile() + "/ → s3://" + getBucket() + "/" + getKey());
+                getLogger().lifecycle("testing:upload:" + getName());
             }
         } else {
             throw new GradleException("Invalid parameters: one of [key, file] or [keyPrefix, sourceDir] pairs must be specified for S3Upload");
