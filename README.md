@@ -11,7 +11,7 @@ Add the following to your build.gradle file:
 
 ```groovy
 plugins {
-  id 'io.jumpco.open.gradle.s3' version '1.0.0'
+  id 'io.jumpco.open.gradle.s3' version '1.0.2'
 }
 ```
 
