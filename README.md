@@ -1,8 +1,8 @@
 # Gradle S3 Plugin
-[![Install](https://img.shields.io/badge/install-plugin-brown.svg)](https://plugins.gradle.org/plugin/com.github.mgk.gradle.s3)
+[![Install](https://img.shields.io/badge/install-plugin-brown.svg)](https://plugins.gradle.org/plugin/io.jumpco.open.gradle.s3)
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
 
-Simple Gradle plugin that uploads and downloads S3 objects. This is a fork of the [mgk/s3-plugin](https://github.com/mgk/s3-plugin), which no longer appears to be under active development.
+Simple Gradle plugin that uploads and downloads S3 objects. This is a fork of the [mygrocerydeals/gradle-s3-plugin](https://github.com/mygrocerydeals/gradle-s3-plugin), which no longer appears to be under active development.
 It has been updated to work with Gradle version 6 and later.
 
 ## Setup
@@ -11,15 +11,13 @@ Add the following to your build.gradle file:
 
 ```groovy
 plugins {
-  id 'com.mgd.core.gradle.s3' version '1.1.0'
+  id 'io.jumpco.open.gradle.s3' version '1.0.0'
 }
 ```
 
 ## Versioning
 
-This project uses [semantic versioning](http://semver.org)
-
-See [gradle plugin page](https://plugins.gradle.org/plugin/com.mgd.core.gradle.s3) for other versions.
+See [gradle plugin page](https://plugins.gradle.org/plugin/io.jumpco.open.gradle.s3) for other versions.
 
 # Usage
 
