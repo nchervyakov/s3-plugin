@@ -17,7 +17,7 @@ class S3PluginTest {
     @Before
     public void setup() {
         buildFile = testProjectDir.newFile('build.gradle')
-        buildFile << "plugins { id 'io.jumpco.open.gradle.s3' } "
+        buildFile << "plugins { id 'io.jumpco.open.gradle.s3' }"
 
         copy(new File('src/test/resources'), buildFile.parentFile)
     }
@@ -28,6 +28,8 @@ class S3PluginTest {
             io.jumpco.open.gradle.s3.S3BaseConfig.setTesting(true)
             s3 {
                 bucket = 'some-bucket'
+                awsAccessKeyId = '123456789'
+                awsSecretAccessKey = 'secret'
             }
             s3Downloads {
                 docs {
@@ -41,13 +43,24 @@ class S3PluginTest {
                     sourceDir = 'site'
                     keyPrefix = '/'
                 }
+            }
+            task myUpload(type: io.jumpco.open.gradle.s3.S3Upload) {
+                sourceDir = 'my-dir'
+                keyPrefix = 'some-folder'
+            }
+            task myDownload(type: io.jumpco.open.gradle.s3.S3Download) {
+                key = 'somefilename.txt'
+                file = 'localFileName'
+            }
+            task deploy(dependsOn: [myUpload, myDownload, siteUploadTask, docsDownloadTask]) {
             }            
         """
         S3BaseConfig.setTesting(true)
         def result = GradleRunner.create()
                 .withProjectDir(testProjectDir.root)
-                .withArguments('--stacktrace', '-i', 'docsDownloadTask', 'siteUploadTask')
                 .withPluginClasspath()
+                .withArguments('--stacktrace', '-i', 'deploy')
+
                 .withDebug(true)
                 .build()
         println("Temp folder=$buildFile.parent")

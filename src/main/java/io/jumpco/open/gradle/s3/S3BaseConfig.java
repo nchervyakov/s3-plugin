@@ -14,6 +14,9 @@ public abstract class S3BaseConfig {
         testing = t;
     }
 
+    private Property<String> awsAccessKeyId;
+    private Property<String> awsSecretAccessKey;
+
     private Property<String> bucket;
 
     protected final String name;
@@ -57,12 +60,30 @@ public abstract class S3BaseConfig {
         this.keyPrefix.set(keyPrefix);
     }
 
+    public Property<String> getAwsAccessKeyId() {
+        return awsAccessKeyId;
+    }
+
+    public void setAwsAccessKeyId(String awsAccessKeyId) {
+        this.awsAccessKeyId.set(awsAccessKeyId);
+    }
+
+    public Property<String> getAwsSecretAccessKey() {
+        return awsSecretAccessKey;
+    }
+
+    public void setAwsSecretAccessKey(String awsSecretAccessKey) {
+        this.awsSecretAccessKey.set(awsSecretAccessKey);
+    }
+
     public S3BaseConfig(String name, ObjectFactory objectFactory) {
         this.name = name;
         this.bucket = objectFactory.property(String.class);
         this.file = objectFactory.property(String.class);
         this.key = objectFactory.property(String.class);
         this.keyPrefix = objectFactory.property(String.class);
+        this.awsAccessKeyId = objectFactory.property(String.class);
+        this.awsSecretAccessKey = objectFactory.property(String.class);
     }
 
     public String getName() {
@@ -86,12 +107,14 @@ public abstract class S3BaseConfig {
 
     @Override
     public String toString() {
-        return "S3BaseExtension{" +
-                "bucket='" + bucket + '\'' +
+        return "S3BaseConfig{" +
+                "awsAccessKeyId=" + awsAccessKeyId +
+                ", awsSecretAccessKey=" + (awsSecretAccessKey.getOrNull() != null ? "******" : "null") +
+                ", bucket=" + bucket +
                 ", name='" + name + '\'' +
-                ", key='" + key + '\'' +
-                ", file='" + file + '\'' +
-                ", keyPrefix='" + keyPrefix + '\'' +
+                ", key=" + key +
+                ", file=" + file +
+                ", keyPrefix=" + keyPrefix +
                 '}';
     }
 }

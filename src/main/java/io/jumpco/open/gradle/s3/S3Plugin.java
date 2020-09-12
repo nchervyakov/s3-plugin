@@ -22,16 +22,28 @@ public class S3Plugin implements Plugin<Project> {
         uploadContainer.all(new Action<S3UploadConfig>() {
             @Override
             public void execute(S3UploadConfig config) {
-                project.getLogger().info("S3Upload:config:" + config);
+                project.getLogger().info(config.getName() + ":upload:config:" + config);
                 project.getTasks().register(config.getName() + "UploadTask", S3Upload.class, new Action<S3Upload>() {
                     @Override
                     public void execute(S3Upload task) {
                         task.setBucket(config.getBucket().getOrElse(getExt(project).getBucket()));
+                        task.setAwsAccessKeyId(config.getAwsAccessKeyId().getOrElse(getExt(project).getAwsAccessKeyId()));
+                        task.setAwsSecretAccessKey(config.getAwsSecretAccessKey().getOrElse(getExt(project).getAwsSecretAccessKey()));
                         task.setSourceDir(config.getSourceDir().getOrNull());
                         task.setOverwrite(config.getOverwrite().getOrElse(false));
                         task.setKeyPrefix(config.getKeyPrefix().getOrNull());
                         task.setFile(config.getFile().getOrNull());
-                        project.getLogger().info("S3Upload:registered:" + task.getName() + ":" + config);
+                        task.setKey(config.getKey().getOrNull());
+                        if (task.getAwsAccessKeyId() != null && task.getAwsSecretAccessKey() == null) {
+                            throw new GradleException("Expected awsSecretAccessKey when awsAccessKeyId provided");
+                        }
+                        if ((task.getKey() != null && task.getFile() == null) || (task.getFile() != null && task.getKey() == null)) {
+                            throw new GradleException("Expected key and file for single file upload");
+                        }
+                        if ((task.getSourceDir() != null && task.getKeyPrefix() == null) || (task.getSourceDir() == null && task.getKeyPrefix() != null)) {
+                            throw new GradleException("Expected sourceDir and keyPrefix for directory upload");
+                        }
+                        project.getLogger().info(task.getName() + ":registered:" + config);
                     }
                 });
             }
@@ -39,15 +51,26 @@ public class S3Plugin implements Plugin<Project> {
         downloadContainer.all(new Action<S3DownloadConfig>() {
             @Override
             public void execute(S3DownloadConfig config) {
-                project.getLogger().info("S3Download:config:" + config);
+                project.getLogger().info(config.getName() + ":download:config:" + config);
                 project.getTasks().register(config.getName() + "DownloadTask", S3Download.class, new Action<S3Download>() {
                     @Override
                     public void execute(S3Download task) {
                         task.setBucket(config.getBucket().getOrElse(getExt(project).getBucket()));
+                        task.setAwsAccessKeyId(config.getAwsAccessKeyId().getOrElse(getExt(project).getAwsAccessKeyId()));
+                        task.setAwsSecretAccessKey(config.getAwsSecretAccessKey().getOrElse(getExt(project).getAwsSecretAccessKey()));
                         task.setKeyPrefix(config.getKeyPrefix().getOrNull());
                         task.setKey(config.getKey().getOrNull());
                         task.setFile(config.getFile().getOrNull());
                         task.setDestDir(config.getDestDir().getOrNull());
+                        if (task.getAwsAccessKeyId() != null && task.getAwsSecretAccessKey() == null) {
+                            throw new GradleException("Expected awsSecretAccessKey when awsAccessKeyId provided");
+                        }
+                        if ((task.getKey() != null && task.getFile() == null) || (task.getFile() != null && task.getKey() == null)) {
+                            throw new GradleException("Expected key and file for single file download");
+                        }
+                        if ((task.getDestDir() != null && task.getKeyPrefix() == null) || (task.getDestDir() == null && task.getKeyPrefix() != null)) {
+                            throw new GradleException("Expected destDir and keyPrefix for directory upload");
+                        }
                         project.getLogger().info("S3Download:registered:" + task.getName() + ":" + config);
                     }
                 });

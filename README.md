@@ -3,7 +3,7 @@
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
 
 Simple Gradle plugin that uploads and downloads S3 objects. This is a fork of the [mygrocerydeals/gradle-s3-plugin](https://github.com/mygrocerydeals/gradle-s3-plugin), which no longer appears to be under active development.
-It has been updated to work with Gradle version 6 and later.
+It has been updated to work with Gradle version 6 and later and convert to pure Java. 
 
 ## Setup
 
@@ -11,7 +11,7 @@ Add the following to your build.gradle file:
 
 ```groovy
 plugins {
-  id 'io.jumpco.open.gradle.s3' version '1.0.2'
+  id 'io.jumpco.open.gradle.s3' version '1.1.1'
 }
 ```
 
@@ -20,14 +20,29 @@ plugins {
 See [gradle plugin page](https://plugins.gradle.org/plugin/io.jumpco.open.gradle.s3) for other versions.
 
 # Usage
+## AWS Configuration
 
-## Authentication
-
-The S3 plugin searches for credentials in the same order as the [AWS default credentials provider chain](http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/DefaultAWSCredentialsProviderChain.html). Additionally you can specify a credentials profile to use by setting the project `s3.profile` property:
+When performing uploads you need to provide `s3.region` as follows:
 
 ```groovy
 s3 {
-    profile = 'my-profile'
+    region = 'us-east-1'
+}
+```
+
+## Authentication
+
+By default, the S3 plugin searches for credentials in the same order as the [AWS default credentials provider chain](http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/DefaultAWSCredentialsProviderChain.html).
+ 
+You can specify a profile by setting the project `s3.profile` or `s3.awsAccessKeyId` and `s3.awsSecretAccessKey`.
+
+The provided access key and secret will take precedence.  
+
+```groovy
+s3 {
+    profile = 'my-profile'    
+    awsAccessKeyId = '12345678'
+    awsSecretAccessKey = 'my-secret'
 }
 ```
 
@@ -51,6 +66,11 @@ The `s3.bucket` property sets a default S3 bucket that is common to all tasks. T
 s3 {
     bucket = 'my.default.bucketname'
 }
+```
+
+## Sample Tasks
+
+```groovy
 
 s3Uploads {
     jobName {
@@ -65,18 +85,35 @@ s3Downloads {
         destDir = 'targetDir'
     }   
 }
+
+task myDownload(type: io.jumpco.open.gradle.s3.S3Download) { 
+    keyPrefix = 'folder'
+    destDir = 'targetDir'
+}
+
+task myUpload(type: io.jumpco.open.gradle.s3.S3Upload) {
+    key = 'target-filename'
+    file = 'source-filename'    
+}
 ```
 
-`dlJob` will result in task `dlJobDownloadTask`
+***Note*** 
 
-`jobName` will result in task `jobNameUploadTask`
+Use the fully qualified name for the tasks:
+* `io.jumpco.open.gradle.s3.S3Upload`
+* `io.jumpco.open.gradle.s3.S3Download`
 
+Job descriptions will result tasks with the name prefixed:  
+* `dlJob` will result in task `dlJobDownloadTask`
+* `jobName` will result in task `jobNameUploadTask`
 
 ### s3Uploads
 
 Uploads one or more files to S3. This task has two modes of operation: single file upload and directory upload (including recursive upload of all child subdirectories). Properties that apply to both modes:
 
-  + `bucket` - S3 bucket to use *(optional, defaults to the project `s3` configured bucket)*
+  + `bucket` - S3 bucket to use *(optional, defaults to the project `s3` configured `bucket`)*
+  + `awsAccessKeyId` - AWS Access Key *(optional, defaults to the project `s3` configured `awsAccessKeyId`)*
+  + `awsSecretAccessKey` AWS Access Secret *(optional, defaults to the project `s3` configured `awsSecretAccessKey`)*
 
 For a single file upload:
 
@@ -98,8 +135,10 @@ A directory upload will always overwrite existing content if it already exists u
 Downloads one or more S3 objects. This task has two modes of operation: single file
 download and recursive download. Properties that apply to both modes:
 
-  + `bucket` - S3 bucket to use *(optional, defaults to the project `s3` configured bucket)*
-
+  + `bucket` - S3 bucket to use *(optional, defaults to the project `s3` configured `bucket`)*
+  + `awsAccessKeyId` - AWS Access Key *(optional, defaults to the project `s3` configured `awsAccessKeyId`)*
+  + `awsSecretAccessKey` AWS Access Secret *(optional, defaults to the project `s3` configured `awsSecretAccessKey`)*
+  
 For a single file download:
 
   + `key` - key of S3 object to download
@@ -140,22 +179,21 @@ local-dir/
         └── bar
 ```
 
-So only files under `top/foo` are downloaded, but their full S3 paths are appended to the `destDir`. This is different from the behavior of the aws cli `aws s3 cp --recursive` command which prunes the root of the downloaded objects. Use the flexible [Gradle Copy](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.Copy.html) task to prune the tree after downloading it.
+So only files under `top/foo` are downloaded, but their full S3 paths are appended to the `destDir`. This is different from the behavior of the aws cli `aws s3 cp --recursive` command which prunes the root of the downloaded objects. 
+Use the flexible [Gradle Copy](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.Copy.html) task to prune the tree after downloading it.
 
 For example:
 
 ```groovy
 def localTree = 'path/to/some/location'
-s3Downloads {
-    downloadRecursive {
-        bucket = 's3-bucket-name'
-        keyPrefix = "${localTree}"
-        destDir = "${buildDir}/download-root"
-    }
+task downloadRecursive(type: io.jumpco.open.gradle.s3.S3Download) {
+    bucket = 's3-bucket-name'
+    keyPrefix = "${localTree}"
+    destDir = "${buildDir}/download-root"
 }
 
 // prune and re-root the downloaded tree, removing the keyPrefix
-task copyDownload(type: Copy, dependsOn: 'downloadRecursiveDownloadTask') {
+task copyDownload(type: Copy, dependsOn: downloadRecursive) {
     from "${buildDir}/download-root/${localTree}"
     into "${buildDir}/pruned-tree"
 }
