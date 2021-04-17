@@ -83,14 +83,14 @@ public class SS3Util {
             if (awsSecretAccessKey == null) {
                 throw new GradleException("Expected awsSecretAccessKey when awsAccessKeyId was provided");
             }
-            project.getLogger().quiet("s3:awsAccessKeyId:" + awsAccessKeyId);
+            project.getLogger().info("s3:awsAccessKeyId:" + awsAccessKeyId);
             credentialsProviders.add(new SimpleWSCredentialsProvider(new BasicAWSCredentials(awsAccessKeyId, awsSecretAccessKey)));
         }
         credentialsProviders.add(new EnvironmentVariableCredentialsProvider());
         credentialsProviders.add(new SystemPropertiesCredentialsProvider());
         String profile = getExt().getProfile();
         if (profile != null) {
-            project.getLogger().quiet("s3:profile: " + profile);
+            project.getLogger().info("s3:profile: " + profile);
             credentialsProviders.add(new ProfileCredentialsProvider(profile));
         }
         credentialsProviders.add(new EC2ContainerCredentialsProviderWrapper());
