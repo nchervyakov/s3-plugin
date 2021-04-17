@@ -9,16 +9,22 @@ import java.text.DecimalFormat;
 
 public class S3Listener implements ProgressListener {
 
-    private DecimalFormat df = new DecimalFormat("#0.0");
-    private Transfer transfer;
-    private Logger logger;
+  private DecimalFormat df = new DecimalFormat("#0.0");
+  private Transfer transfer;
+  private Logger logger;
 
-    public S3Listener(Transfer transfer, Logger logger) {
-        this.transfer = transfer;
-        this.logger = logger;
-    }
+  public S3Listener(Transfer transfer, Logger logger) {
+    this.transfer = transfer;
+    this.logger = logger;
+  }
 
-    public void progressChanged(ProgressEvent e) {
+  public void progressChanged(ProgressEvent e) {
+    switch (e.getEventType()) {
+      case TRANSFER_COMPLETED_EVENT:
+      case TRANSFER_STARTED_EVENT:
+        logger.lifecycle(String.format("%s%s", transfer.getState().name(), transfer.getDescription()));
+      default:
         logger.info(String.format("%s%%", df.format(transfer.getProgress().getPercentTransferred())));
     }
+  }
 }

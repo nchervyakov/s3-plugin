@@ -191,7 +191,7 @@ public class S3Upload extends DefaultTask {
                 if (IOUtils.contentEquals(s3stream.getDelegateStream(), new FileInputStream(sourceFile))) {
                   getLogger().lifecycle(getName() + ":upload:equals:skipping:" + target.getPath());
                 } else {
-                  getLogger().info(getName() + ":upload:different:adding:" + target.getPath());
+                  getLogger().lifecycle(getName() + ":upload:different:adding:" + target.getPath());
                   uploadFiles.add(portion);
                 }
               } else if (overwrite) {
