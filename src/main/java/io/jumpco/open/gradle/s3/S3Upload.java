@@ -159,7 +159,6 @@ public class S3Upload extends DefaultTask {
         if (!file.exists()) {
           throw new GradleException("upload sourceDir:" + sourceDir + " not found");
         }
-        Transfer transfer;
         if (isCompareContent() || !isOverwrite()) {
           Set<File> existing = new HashSet<>();
           List<File> uploadFiles = new ArrayList<>();
@@ -189,33 +188,33 @@ public class S3Upload extends DefaultTask {
                     .getObjectContent();
                 getLogger().info(getName() + ":upload:comparing:" + target + " -> " + sourceFile);
                 if (IOUtils.contentEquals(s3stream.getDelegateStream(), new FileInputStream(sourceFile))) {
-                  getLogger().lifecycle(getName() + ":upload:equals:skipping:" + target.getPath());
+                  getLogger().info(getName() + ":upload:equals:skipping:" + target.getPath());
                 } else {
                   getLogger().lifecycle(getName() + ":upload:different:adding:" + target.getPath());
-                  uploadFiles.add(portion);
+                  util.getS3Client().putObject(bucket, target.getPath(), sourceFile);
+                  getLogger().info(getName() + ":upload:completed:" + sourceFile.getPath());
                 }
               } else if (overwrite) {
                 getLogger().lifecycle(getName() + ":upload:exists:overwriting:" + target.getPath());
-                uploadFiles.add(portion);
+                util.getS3Client().putObject(bucket, target.getPath(), sourceFile);
+                getLogger().info(getName() + ":upload:completed:" + sourceFile.getPath());
               }
             } else {
               getLogger().lifecycle(getName() + ":upload:new:" + target.getPath());
-              uploadFiles.add(portion);
+              util.getS3Client().putObject(bucket, target.getPath(), sourceFile);
+              getLogger().info(getName() + ":upload:completed:" + sourceFile.getPath());
             }
           }
-          transfer = TransferManagerBuilder.standard()
-              .withS3Client(util.getS3Client())
-              .build()
-              .uploadFileList(getBucket(), getKeyPrefix(), file, uploadFiles);
         } else {
-          transfer = TransferManagerBuilder.standard()
+          Transfer transfer = TransferManagerBuilder.standard()
               .withS3Client(util.getS3Client())
               .build()
               .uploadDirectory(getBucket(), getKeyPrefix(), file, true);
+          ProgressListener listener = new S3Listener(transfer, getLogger());
+          transfer.addProgressListener(listener);
+          transfer.waitForCompletion();
         }
-        ProgressListener listener = new S3Listener(transfer, getLogger());
-        transfer.addProgressListener(listener);
-        transfer.waitForCompletion();
+
       } else {
         getLogger().lifecycle("testing:upload:" + getBucket());
       }
