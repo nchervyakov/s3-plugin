@@ -39,7 +39,7 @@ group = 'io.jumpco.open'
 if (project.findProperty('buildVersion') == 'LOCAL_SNAPSHOT') {
     version = 'LOCAL_SNAPSHOT'
 } else {
-    version = '1.2.0'
+    version = '1.2.1'
 }
 
 jar {
@@ -63,6 +63,7 @@ ext {
 dependencies {
     compileOnly gradleApi()
     implementation group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: amazonAWSVersion
+    implementation group: 'commons-io', name: 'commons-io', version: '2.8.0'
 
     testCompileOnly localGroovy()
     testImplementation 'junit:junit:4.13'
