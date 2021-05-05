@@ -155,9 +155,9 @@ public class S3Upload extends DefaultTask {
       }
       getLogger().lifecycle(getName() + ":directory:" + getProject().file(getSourceDir()) + " → s3://" + getBucket() + "/" + getKeyPrefix());
       if (!S3BaseConfig.isTesting()) {
-        File file = getProject().file(sourceDir);
+        File file = getProject().file(getSourceDir());
         if (!file.exists()) {
-          throw new GradleException("upload sourceDir:" + sourceDir + " not found");
+          throw new GradleException("upload sourceDir:" + getSourceDir() + " not found");
         }
         if (isCompareContent() || !isOverwrite()) {
           Set<File> existing = new HashSet<>();
@@ -191,17 +191,17 @@ public class S3Upload extends DefaultTask {
                   getLogger().info(getName() + ":upload:equals:skipping:" + target.getPath());
                 } else {
                   getLogger().lifecycle(getName() + ":upload:different:adding:" + target.getPath());
-                  util.getS3Client().putObject(bucket, target.getPath(), sourceFile);
+                  util.getS3Client().putObject(getBucket(), target.getPath(), sourceFile);
                   getLogger().info(getName() + ":upload:completed:" + sourceFile.getPath());
                 }
               } else if (overwrite) {
                 getLogger().lifecycle(getName() + ":upload:exists:overwriting:" + target.getPath());
-                util.getS3Client().putObject(bucket, target.getPath(), sourceFile);
+                util.getS3Client().putObject(getBucket(), target.getPath(), sourceFile);
                 getLogger().info(getName() + ":upload:completed:" + sourceFile.getPath());
               }
             } else {
               getLogger().lifecycle(getName() + ":upload:new:" + target.getPath());
-              util.getS3Client().putObject(bucket, target.getPath(), sourceFile);
+              util.getS3Client().putObject(getBucket(), target.getPath(), sourceFile);
               getLogger().info(getName() + ":upload:completed:" + sourceFile.getPath());
             }
           }
@@ -220,14 +220,14 @@ public class S3Upload extends DefaultTask {
       }
     } else if (getKey() != null && getFile() != null) {
       if (!S3BaseConfig.isTesting()) {
-        File uploadFile = new File(this.file);
+        File uploadFile = new File(getFile());
         if (!uploadFile.exists()) {
-          throw new GradleException("upload file:" + this.file + " not found");
+          throw new GradleException("upload file:" + getFile() + " not found");
         }
         if (util.getS3Client().doesObjectExist(getBucket(), getKey())) {
           if (isOverwrite()) {
             getLogger().lifecycle(getName() + ":" + getFile() + " → s3://" + getBucket() + "/" + getKey() + " with overwrite");
-            util.getS3Client().putObject(bucket, key, uploadFile);
+            util.getS3Client().putObject(getBucket(), getKey(), uploadFile);
           } else {
             if (isCompareContent()) {
               S3ObjectInputStream s3stream = util.getS3Client()
@@ -239,14 +239,14 @@ public class S3Upload extends DefaultTask {
                 getLogger().lifecycle(getName() + ":upload:equals:skipping:" + getKey());
               } else {
                 getLogger().lifecycle(getName() + ":upload:" + getFile() + " → s3://" + getBucket() + "/" + getKey());
-                util.getS3Client().putObject(bucket, key, uploadFile);
+                util.getS3Client().putObject(getBucket(), getKey(), uploadFile);
               }
             }
             getLogger().warn(getName() + ":upload:s3://" + getBucket() + "/" + getKey() + " exists, not overwriting");
           }
         } else {
           getLogger().lifecycle(getName() + ":" + getFile() + " → s3://" + getBucket() + "/" + getKey());
-          util.getS3Client().putObject(bucket, key, uploadFile);
+          util.getS3Client().putObject(getBucket(), getKey(), uploadFile);
         }
       } else {
         getLogger().lifecycle(getName() + ":upload:" + getFile() + " → s3://" + getBucket() + "/" + getKey());
