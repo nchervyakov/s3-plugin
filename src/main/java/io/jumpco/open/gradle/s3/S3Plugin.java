@@ -62,6 +62,7 @@ public class S3Plugin implements Plugin<Project> {
                         task.setKey(config.getKey().getOrNull());
                         task.setFile(config.getFile().getOrNull());
                         task.setDestDir(config.getDestDir().getOrNull());
+                        task.setSkipError(config.getSkipError().getOrElse(false));
                         if (task.getAwsAccessKeyId() != null && task.getAwsSecretAccessKey() == null) {
                             throw new GradleException("Expected awsSecretAccessKey when awsAccessKeyId provided");
                         }
