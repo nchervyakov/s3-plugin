@@ -130,6 +130,7 @@ including recursive upload of all child subdirectories). Properties that apply t
 + `overwrite` - *(optional, default is `false`)*, if `true` the S3 object is created or overwritten if it already exists
 + `compareContent` - *(optional, default is `false`)*, if `true` the s3 object content is downloaded and compared to the
   local content. If not the same then the file is uploaded.
++ `skipError` - *(optional, default is `false`)*, if `true` will not fail on missing objects.
 
 For a single file upload:
 

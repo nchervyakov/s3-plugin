@@ -51,6 +51,8 @@ public class S3Upload extends DefaultTask {
   private boolean overwrite = false;
   @Input
   private boolean compareContent = false;
+  @Input
+  private boolean skipError;
 
   @Override
   public String getGroup() {
@@ -142,6 +144,14 @@ public class S3Upload extends DefaultTask {
     this.compareContent = compareContent;
   }
 
+  public boolean isSkipError() {
+    return skipError;
+  }
+
+  public void setSkipError(final boolean skipError) {
+    this.skipError = skipError;
+  }
+
   @TaskAction
   public void task() throws InterruptedException, IOException {
 
@@ -153,10 +163,16 @@ public class S3Upload extends DefaultTask {
       if (getKey() != null || getFile() != null) {
         throw new GradleException("Invalid parameters: [key, file] are not valid for S3 Upload directory");
       }
-      getLogger().lifecycle(getName() + ":directory:" + getProject().file(getSourceDir()) + " → s3://" + getBucket() + "/" + getKeyPrefix());
+      getLogger().lifecycle(getName() +
+          ":directory:" +
+          getProject().file(getSourceDir()) +
+          " → s3://" +
+          getBucket() +
+          "/" +
+          getKeyPrefix());
       if (!S3BaseConfig.isTesting()) {
         File file = getProject().file(getSourceDir());
-        if (!file.exists()) {
+        if (!file.exists() && isSkipError()) {
           throw new GradleException("upload sourceDir:" + getSourceDir() + " not found");
         }
         if (isCompareContent() || !isOverwrite()) {
@@ -214,7 +230,6 @@ public class S3Upload extends DefaultTask {
           transfer.addProgressListener(listener);
           transfer.waitForCompletion();
         }
-
       } else {
         getLogger().lifecycle("testing:upload:" + getBucket());
       }
@@ -226,7 +241,8 @@ public class S3Upload extends DefaultTask {
         }
         if (util.getS3Client().doesObjectExist(getBucket(), getKey())) {
           if (isOverwrite()) {
-            getLogger().lifecycle(getName() + ":" + getFile() + " → s3://" + getBucket() + "/" + getKey() + " with overwrite");
+            getLogger().lifecycle(getName() + ":" + getFile() + " → s3://" + getBucket() + "/" + getKey() +
+                " with overwrite");
             util.getS3Client().putObject(getBucket(), getKey(), uploadFile);
           } else {
             if (isCompareContent()) {
