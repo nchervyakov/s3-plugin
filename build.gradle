@@ -27,7 +27,7 @@ plugins {
     id 'groovy'
     id 'java'
     id 'signing'
-    id 'org.ysb33r.gradletest' version '2.0'
+    id 'org.ysb33r.gradletest' version '3.0.0-alpha.1'
 }
 
 wrapper {
@@ -69,7 +69,7 @@ dependencies {
     testImplementation 'junit:junit:4.13'
     testImplementation 'org.assertj:assertj-core:3.6.2'
     testCompileOnly gradleTestKit()
-    testImplementation 'org.spockframework:spock-core:1.3-groovy-2.5'
+    testImplementation 'org.spockframework:spock-core:2.0-groovy-3.0'
 }
 
 gradlePlugin {
