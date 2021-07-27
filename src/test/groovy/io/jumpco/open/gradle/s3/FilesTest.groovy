@@ -1,12 +1,11 @@
 package io.jumpco.open.gradle.s3
 
-import groovy.json.StringEscapeUtils
+
 import org.junit.Rule
-import org.junit.rules.TemporaryFolder
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 
 import java.nio.file.Files
-import java.nio.file.Path
 import java.util.stream.Collectors
 
 class FilesTest {
@@ -15,7 +14,6 @@ class FilesTest {
 
     @Test
     public void testFiles() {
-        Set<String> existing = new HashSet<>();
         File dir = new File("src/test/resources/f1");
         Set<File> files = Files.walk(dir.toPath(), Integer.MAX_VALUE).filter { file -> !Files.isDirectory(file) }
                 .map { it.toFile() }

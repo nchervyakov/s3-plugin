@@ -19,9 +19,10 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 plugins {
     id 'java-gradle-plugin'
-    id 'com.gradle.plugin-publish' version '0.12.0'
+    id 'com.gradle.plugin-publish' version '0.15.0'
     id 'maven-publish'
     id 'idea'
     id 'groovy'
@@ -31,7 +32,7 @@ plugins {
 }
 
 wrapper {
-    gradleVersion = '6.6.1'
+    gradleVersion = '7.1.1'
 }
 
 group = 'io.jumpco.open'
@@ -39,7 +40,7 @@ group = 'io.jumpco.open'
 if (project.findProperty('buildVersion') == 'LOCAL_SNAPSHOT') {
     version = 'LOCAL_SNAPSHOT'
 } else {
-    version = '1.2.4'
+    version = '1.3.0'
 }
 
 jar {
@@ -62,14 +63,19 @@ ext {
 
 dependencies {
     compileOnly gradleApi()
-    implementation group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: amazonAWSVersion
-    implementation group: 'commons-io', name: 'commons-io', version: '2.8.0'
+    implementation 'com.amazonaws:aws-java-sdk-s3:' + amazonAWSVersion
+    implementation 'commons-io:commons-io:2.8.0'
 
     testCompileOnly localGroovy()
     testImplementation 'junit:junit:4.13'
     testImplementation 'org.assertj:assertj-core:3.6.2'
     testCompileOnly gradleTestKit()
     testImplementation 'org.spockframework:spock-core:2.0-groovy-3.0'
+    gradleTest 'org.spockframework:spock-core:2.0-groovy-3.0'
+    gradleTest 'org.assertj:assertj-core:3.6.2'
+    gradleTest 'junit:junit:4.13'
+    gradleTest 'com.amazonaws:aws-java-sdk-s3:' + amazonAWSVersion
+    gradleTest 'commons-io:commons-io:2.8.0'
 }
 
 gradlePlugin {
@@ -106,10 +112,9 @@ artifacts {
 }
 
 gradleTest {
-    versions '6.6.1', '6.5.1', '6.4.1', '6.3', '6.2.1', '6.1.1', '6.0.1'
+    versions '7.1.1', '7.0.2'
+    versions '6.8.3', '6.6.1', '6.5.1', '6.4.1', '6.3', '6.2.1', '6.1.1', '6.0.1'
     versions '5.4.1', '5.5.1', '5.6.4'
-    versions '5.0', '5.1.1', '5.2.1', '5.3.1'
-    versions '4.9', '4.10.2'
 
     beforeTest {
         println "  ${it.name}"
