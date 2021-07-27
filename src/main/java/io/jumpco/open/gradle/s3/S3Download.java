@@ -8,10 +8,12 @@ import java.io.File;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.TaskAction;
 
 public class S3Download extends DefaultTask {
+    @Internal
     @Override
     public String getGroup() {
         return "s3";
@@ -29,6 +31,7 @@ public class S3Download extends DefaultTask {
     @Input
     protected String awsSecretAccessKey;
 
+    @Internal
     S3Extension getExt() {
         return getProject().getExtensions().findByType(S3Extension.class);
     }
@@ -140,7 +143,7 @@ public class S3Download extends DefaultTask {
             if (key != null || file != null) {
                 throw new GradleException("Invalid parameters: [key, file] are not valid for S3Download recursive");
             }
-            getLogger().lifecycle(getName() + ":directory:s3://" + getBucket() + "/" + keyPrefix + " → " + destDir + "/");
+            getLogger().lifecycle("{}:directory:s3://{}/{} → {}/", getName(), getBucket(), keyPrefix, destDir);
             if (!S3BaseConfig.isTesting()) {
                 transfer = TransferManagerBuilder.standard().withS3Client(util.getS3Client()).build()
                         .downloadDirectory(getBucket(), keyPrefix, getProject().file(destDir));
@@ -149,7 +152,7 @@ public class S3Download extends DefaultTask {
             if (keyPrefix != null || destDir != null) {
                 throw new GradleException("Invalid parameters: [keyPrefix, destDir] are not valid for S3 Download single file");
             }
-            getLogger().lifecycle(getName() + ":file:s3://" + getBucket() + "/" + key + " → " + file);
+            getLogger().lifecycle("{}:file:s3://{}/{} → {}", getName(), getBucket(), key, file);
             if (!S3BaseConfig.isTesting()) {
                 File f = new File(file);
                 if (f.getParentFile() != null && !f.getParentFile().exists()) {
@@ -178,7 +181,7 @@ public class S3Download extends DefaultTask {
                 transfer.waitForCompletion();
             }
         } else {
-            getLogger().lifecycle(getName() + "testing:" + getBucket());
+            getLogger().lifecycle("{}testing:{}", getName(), getBucket());
         }
     }
 }
