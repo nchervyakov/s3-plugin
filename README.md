@@ -105,6 +105,13 @@ task myUpload(type: io.jumpco.open.gradle.s3.S3Upload) {
     file = 'source-filename'
     compareContent = true
 }
+task myUploadFiles(type: io.jumpco.open.gradle.s3.S3Upload) {
+  keyPrefix = 'target-folder'
+  files = fileTree('my-folder').matching {
+    include("**/*.zip")
+  }
+  compareContent = false
+}
 ```
 
 ***Note***
