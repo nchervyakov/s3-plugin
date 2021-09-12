@@ -10,10 +10,9 @@ import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import org.apache.commons.io.IOUtils;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.Internal;
-import org.gradle.api.tasks.Optional;
-import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.file.FileCollection;
+import org.gradle.api.tasks.*;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -48,6 +47,9 @@ public class S3Upload extends DefaultTask {
   @Optional
   @Input
   private String sourceDir;
+  @Optional
+  @InputFiles
+  private FileCollection fileCollection;
   @Input
   private boolean overwrite = false;
   @Input
@@ -131,6 +133,14 @@ public class S3Upload extends DefaultTask {
     this.sourceDir = sourceDir;
   }
 
+  public FileCollection getFileCollection() {
+    return fileCollection;
+  }
+
+  public void setFileCollection(final FileCollection fileCollection) {
+    this.fileCollection = fileCollection;
+  }
+
   public boolean isOverwrite() {
     return overwrite;
   }
@@ -155,6 +165,82 @@ public class S3Upload extends DefaultTask {
     this.skipError = skipError;
   }
 
+  private Set<File> findExisting(final SS3Util util){
+    final Set<File> existing = new HashSet<>();
+    final ListObjectsV2Request req = new ListObjectsV2Request().withBucketName(getBucket()).withMaxKeys(2);
+    ListObjectsV2Result result;
+    do {
+      result = util.getS3Client().listObjectsV2(req);
+      for (S3ObjectSummary objectSummary : result.getObjectSummaries()) {
+        if (objectSummary.getKey().startsWith(keyPrefix)) {
+          existing.add(new File(objectSummary.getKey()));
+          getLogger().debug("{}:listing:{}:{}", getName(), getBucket(), objectSummary.getKey());
+        }
+      }
+      String token = result.getNextContinuationToken();
+      req.setContinuationToken(token);
+    } while (result.isTruncated());
+    return existing;
+  }
+  private void uploadFile(final SS3Util util, final File fileToUpload) throws IOException {
+    if (!fileToUpload.exists()) {
+      throw new GradleException("upload file:" + getFile() + " not found");
+    }
+    if (util.getS3Client().doesObjectExist(getBucket(), getKey())) {
+      if (isOverwrite()) {
+        getLogger().lifecycle("{}:{} → s3://{}/{} with overwrite", getName(), getFile(), getBucket(), getKey());
+        util.getS3Client().putObject(getBucket(), getKey(), fileToUpload);
+      } else {
+        if (isCompareContent()) {
+          S3ObjectInputStream s3stream = util.getS3Client()
+                  .getObject(getBucket(), getKey())
+                  .getObjectContent();
+          File target = new File(getKey());
+          getLogger().info("{}:upload:comparing:{} -> {}", getName(), target, fileToUpload);
+          if (IOUtils.contentEquals(s3stream.getDelegateStream(), new FileInputStream(fileToUpload))) {
+            getLogger().lifecycle("{}:upload:equals:skipping:{}", getName(), getKey());
+          } else {
+            getLogger().lifecycle("{}:upload:{} → s3://{}/{}", getName(), getFile(), getBucket(), getKey());
+            util.getS3Client().putObject(getBucket(), getKey(), fileToUpload);
+          }
+        }
+        getLogger().warn("{}:upload:s3://{}/{} exists, not overwriting", getName(), getBucket(), getKey());
+      }
+    } else {
+      getLogger().lifecycle("{}:{} → s3://{}/{}", getName(), getFile(), getBucket(), getKey());
+      util.getS3Client().putObject(getBucket(), getKey(), fileToUpload);
+    }
+  }
+  private void uploadFiles(final SS3Util util, final File file, final List<File> sourceFiles) throws IOException {
+    final var existing = findExisting(util);
+    for (File sourceFile : sourceFiles) {
+      File target = makeFile(file, sourceFile, keyPrefix);
+      if (existing.contains(target)) {
+        if (isCompareContent()) {
+          S3ObjectInputStream s3stream = util.getS3Client()
+                  .getObject(getBucket(), target.getPath())
+                  .getObjectContent();
+          getLogger().info("{}:upload:comparing:{} -> {}", getName(), target, sourceFile);
+          if (IOUtils.contentEquals(s3stream.getDelegateStream(), new FileInputStream(sourceFile))) {
+            getLogger().info("{}:upload:equals:skipping:{}", getName(), target.getPath());
+          } else {
+            getLogger().lifecycle(getName() + ":upload:different:adding:" + target.getPath());
+            util.getS3Client().putObject(getBucket(), target.getPath(), sourceFile);
+            getLogger().info("{}:upload:completed:{}", getName(), sourceFile.getPath());
+          }
+        } else if (overwrite) {
+          getLogger().lifecycle("{}:upload:exists:overwriting:{}", getName(), target.getPath());
+          util.getS3Client().putObject(getBucket(), target.getPath(), sourceFile);
+          getLogger().info("{}:upload:completed:{}", getName(), sourceFile.getPath());
+        }
+      } else {
+        getLogger().lifecycle(getName() + ":upload:new:" + target.getPath());
+        util.getS3Client().putObject(getBucket(), target.getPath(), sourceFile);
+        getLogger().info("{}:upload:completed:{}", getName(), sourceFile.getPath());
+      }
+    }
+
+  }
   @TaskAction
   public void task() throws InterruptedException, IOException {
 
@@ -163,8 +249,8 @@ public class S3Upload extends DefaultTask {
     }
     SS3Util util = new SS3Util(getProject(), getBucket(), getAwsAccessKeyId(), getAwsSecretAccessKey());
     if (getKeyPrefix() != null && getSourceDir() != null) {
-      if (getKey() != null || getFile() != null) {
-        throw new GradleException("Invalid parameters: [key, file] are not valid for S3 Upload directory");
+      if (getKey() != null || getFile() != null || getFileCollection() != null) {
+        throw new GradleException("Invalid parameters: [key, file, fileCollection] are not valid for S3 Upload directory");
       }
       getLogger().lifecycle("{}:directory:{} → s3://{}/{}",
           getName(),
@@ -177,51 +263,10 @@ public class S3Upload extends DefaultTask {
           throw new GradleException("upload sourceDir:" + getSourceDir() + " not found");
         }
         if (isCompareContent() || !isOverwrite()) {
-          Set<File> existing = new HashSet<>();
-          List<File> uploadFiles = new ArrayList<>();
-          List<File> sourceFiles = Files.walk(file.toPath(), Integer.MAX_VALUE).filter(f -> !Files.isDirectory(f))
+          final List<File> sourceFiles = Files.walk(file.toPath(), Integer.MAX_VALUE).filter(f -> !Files.isDirectory(f))
               .map(Path::toFile)
               .collect(Collectors.toList());
-          ListObjectsV2Request req = new ListObjectsV2Request().withBucketName(getBucket()).withMaxKeys(2);
-          ListObjectsV2Result result;
-          do {
-            result = util.getS3Client().listObjectsV2(req);
-            for (S3ObjectSummary objectSummary : result.getObjectSummaries()) {
-              if (objectSummary.getKey().startsWith(keyPrefix)) {
-                existing.add(new File(objectSummary.getKey()));
-                getLogger().debug("{}:listing:{}:{}", getName(), getBucket(), objectSummary.getKey());
-              }
-            }
-            String token = result.getNextContinuationToken();
-            req.setContinuationToken(token);
-          } while (result.isTruncated());
-          for (File sourceFile : sourceFiles) {
-            File target = makeFile(file, sourceFile, keyPrefix);
-            File portion = makeFile(file, sourceFile, null);
-            if (existing.contains(target)) {
-              if (isCompareContent()) {
-                S3ObjectInputStream s3stream = util.getS3Client()
-                    .getObject(getBucket(), target.getPath())
-                    .getObjectContent();
-                getLogger().info("{}:upload:comparing:{} -> {}", getName(), target, sourceFile);
-                if (IOUtils.contentEquals(s3stream.getDelegateStream(), new FileInputStream(sourceFile))) {
-                  getLogger().info("{}:upload:equals:skipping:{}", getName(), target.getPath());
-                } else {
-                  getLogger().lifecycle(getName() + ":upload:different:adding:" + target.getPath());
-                  util.getS3Client().putObject(getBucket(), target.getPath(), sourceFile);
-                  getLogger().info("{}:upload:completed:{}", getName(), sourceFile.getPath());
-                }
-              } else if (overwrite) {
-                getLogger().lifecycle("{}:upload:exists:overwriting:{}", getName(), target.getPath());
-                util.getS3Client().putObject(getBucket(), target.getPath(), sourceFile);
-                getLogger().info("{}:upload:completed:{}", getName(), sourceFile.getPath());
-              }
-            } else {
-              getLogger().lifecycle(getName() + ":upload:new:" + target.getPath());
-              util.getS3Client().putObject(getBucket(), target.getPath(), sourceFile);
-              getLogger().info("{}:upload:completed:{}", getName(), sourceFile.getPath());
-            }
-          }
+          uploadFiles(util, file, sourceFiles);
         } else {
           Transfer transfer = TransferManagerBuilder.standard()
               .withS3Client(util.getS3Client())
@@ -236,41 +281,42 @@ public class S3Upload extends DefaultTask {
       }
     } else if (getKey() != null && getFile() != null) {
       if (!S3BaseConfig.isTesting()) {
-        File uploadFile = new File(getFile());
-        if (!uploadFile.exists()) {
-          throw new GradleException("upload file:" + getFile() + " not found");
-        }
-        if (util.getS3Client().doesObjectExist(getBucket(), getKey())) {
-          if (isOverwrite()) {
-            getLogger().lifecycle("{}:{} → s3://{}/{} with overwrite", getName(), getFile(), getBucket(), getKey());
-            util.getS3Client().putObject(getBucket(), getKey(), uploadFile);
-          } else {
-            if (isCompareContent()) {
-              S3ObjectInputStream s3stream = util.getS3Client()
-                  .getObject(getBucket(), getKey())
-                  .getObjectContent();
-              File target = new File(getKey());
-              getLogger().info("{}:upload:comparing:{} -> {}", getName(), target, uploadFile);
-              if (IOUtils.contentEquals(s3stream.getDelegateStream(), new FileInputStream(uploadFile))) {
-                getLogger().lifecycle("{}:upload:equals:skipping:{}", getName(), getKey());
-              } else {
-                getLogger().lifecycle("{}:upload:{} → s3://{}/{}", getName(), getFile(), getBucket(), getKey());
-                util.getS3Client().putObject(getBucket(), getKey(), uploadFile);
-              }
-            }
-            getLogger().warn("{}:upload:s3://{}/{} exists, not overwriting", getName(), getBucket(), getKey());
-          }
-        } else {
-          getLogger().lifecycle("{}:{} → s3://{}/{}", getName(), getFile(), getBucket(), getKey());
-          util.getS3Client().putObject(getBucket(), getKey(), uploadFile);
-        }
+        this.uploadFile(util, new File(getFile()));
       } else {
         getLogger().lifecycle("{}:upload:{} → s3://{}/{}", getName(), getFile(), getBucket(), getKey());
         getLogger().lifecycle("testing:upload:{}", getName());
       }
+    } else if (getKeyPrefix() != null && getFileCollection() != null) {
+      if (getKey() != null || getFile() != null || getSourceDir() != null) {
+        throw new GradleException("Invalid parameters: [key, file, sourceDir] are not valid for S3 Upload fileCollection");
+      }
+      getLogger().lifecycle("{}:filecollection → s3://{}/{}",
+              getName(),
+              getBucket(),
+              getKeyPrefix());
+      if (!S3BaseConfig.isTesting()) {
+        final var files = new ArrayList<>(getFileCollection().getFiles());
+        final var commonParent = findCommonParent(files);
+        if(commonParent.isEmpty())
+          throw new IllegalArgumentException("Couldn't find common prefix for the provided files");
+        final var dir = commonParent.get();
+        if (isCompareContent() || !isOverwrite()) {
+          uploadFiles(util, dir, files);
+        } else {
+          Transfer transfer = TransferManagerBuilder.standard()
+                  .withS3Client(util.getS3Client())
+                  .build()
+                  .uploadFileList(getBucket(), getKeyPrefix(), dir, files);
+          ProgressListener listener = new S3Listener(transfer, getLogger());
+          transfer.addProgressListener(listener);
+          transfer.waitForCompletion();
+        }
+      } else {
+        getLogger().lifecycle("testing:upload:{}", getBucket());
+      }
     } else {
       throw new GradleException(
-          "Invalid parameters: one of [key, file] or [keyPrefix, sourceDir] pairs must be specified for S3Upload");
+          "Invalid parameters: one of [key, file] or [keyPrefix, sourceDir] or [keyPrefix, fileCollection] pairs must be specified for S3Upload");
     }
   }
 
@@ -283,5 +329,31 @@ public class S3Upload extends DefaultTask {
       return keyPrefix != null && keyPrefix.length() > 0 ? new File(keyPrefix, portion) : new File(portion);
     }
     return sourceFile;
+  }
+
+  private java.util.Optional<File> findCommonParent(final List<File> files) {
+    if(files.isEmpty()) {
+      return java.util.Optional.empty();
+    } else {
+      var result = java.util.Optional.of(files.get(0));
+      for (final var file: files) {
+        result = commonParent(result.get(), file);
+        if(result.isEmpty())
+          return result;
+      }
+      return result;
+    }
+  }
+
+  private java.util.Optional<File> commonParent(final File potentialParent, final File file) {
+    if(file.getAbsolutePath().startsWith(potentialParent.getAbsolutePath()))
+      return java.util.Optional.of(potentialParent);
+    else {
+      final var parent = potentialParent.getParentFile();
+      if (parent == null)
+        return java.util.Optional.empty();
+      else
+        return commonParent(parent, file);
+    }
   }
 }
