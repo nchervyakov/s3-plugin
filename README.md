@@ -150,6 +150,10 @@ For a directory upload:
 
 A directory upload will always overwrite existing content if it already exists under the specified S3 prefix.
 
+For a FileCollection upload:
++ `keyPrefix` - root S3 prefix under which to create the uploaded contents
++ `files` - a `FileCollection` that can be created using `files()` or `fileTree()`
+
 ### s3Downloads
 
 Downloads one or more S3 objects. This task has two modes of operation: single file download and recursive download.

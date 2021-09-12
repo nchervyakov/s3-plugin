@@ -49,7 +49,7 @@ public class S3Upload extends DefaultTask {
   private String sourceDir;
   @Optional
   @InputFiles
-  private FileCollection fileCollection;
+  private FileCollection files;
   @Input
   private boolean overwrite = false;
   @Input
@@ -133,12 +133,12 @@ public class S3Upload extends DefaultTask {
     this.sourceDir = sourceDir;
   }
 
-  public FileCollection getFileCollection() {
-    return fileCollection;
+  public FileCollection getFiles() {
+    return files;
   }
 
-  public void setFileCollection(final FileCollection fileCollection) {
-    this.fileCollection = fileCollection;
+  public void setFiles(final FileCollection files) {
+    this.files = files;
   }
 
   public boolean isOverwrite() {
@@ -212,7 +212,7 @@ public class S3Upload extends DefaultTask {
     }
   }
   private void uploadFiles(final SS3Util util, final File file, final List<File> sourceFiles) throws IOException {
-    final var existing = findExisting(util);
+    final Set<File> existing = findExisting(util);
     for (File sourceFile : sourceFiles) {
       File target = makeFile(file, sourceFile, keyPrefix);
       if (existing.contains(target)) {
@@ -249,7 +249,7 @@ public class S3Upload extends DefaultTask {
     }
     SS3Util util = new SS3Util(getProject(), getBucket(), getAwsAccessKeyId(), getAwsSecretAccessKey());
     if (getKeyPrefix() != null && getSourceDir() != null) {
-      if (getKey() != null || getFile() != null || getFileCollection() != null) {
+      if (getKey() != null || getFile() != null || getFiles() != null) {
         throw new GradleException("Invalid parameters: [key, file, fileCollection] are not valid for S3 Upload directory");
       }
       getLogger().lifecycle("{}:directory:{} → s3://{}/{}",
@@ -286,7 +286,7 @@ public class S3Upload extends DefaultTask {
         getLogger().lifecycle("{}:upload:{} → s3://{}/{}", getName(), getFile(), getBucket(), getKey());
         getLogger().lifecycle("testing:upload:{}", getName());
       }
-    } else if (getKeyPrefix() != null && getFileCollection() != null) {
+    } else if (getKeyPrefix() != null && getFiles() != null) {
       if (getKey() != null || getFile() != null || getSourceDir() != null) {
         throw new GradleException("Invalid parameters: [key, file, sourceDir] are not valid for S3 Upload fileCollection");
       }
@@ -295,11 +295,11 @@ public class S3Upload extends DefaultTask {
               getBucket(),
               getKeyPrefix());
       if (!S3BaseConfig.isTesting()) {
-        final var files = new ArrayList<>(getFileCollection().getFiles());
-        final var commonParent = findCommonParent(files);
-        if(commonParent.isEmpty())
+        final List<File> files = new ArrayList<>(getFiles().getFiles());
+        final java.util.Optional<File> commonParent = findCommonParent(files);
+        if(commonParent.isPresent())
           throw new IllegalArgumentException("Couldn't find common prefix for the provided files");
-        final var dir = commonParent.get();
+        final File dir = commonParent.get();
         if (isCompareContent() || !isOverwrite()) {
           uploadFiles(util, dir, files);
         } else {
@@ -335,10 +335,10 @@ public class S3Upload extends DefaultTask {
     if(files.isEmpty()) {
       return java.util.Optional.empty();
     } else {
-      var result = java.util.Optional.of(files.get(0));
-      for (final var file: files) {
+      java.util.Optional<File> result = java.util.Optional.of(files.get(0));
+      for (final File file: files) {
         result = commonParent(result.get(), file);
-        if(result.isEmpty())
+        if(result.isPresent())
           return result;
       }
       return result;
@@ -349,7 +349,7 @@ public class S3Upload extends DefaultTask {
     if(file.getAbsolutePath().startsWith(potentialParent.getAbsolutePath()))
       return java.util.Optional.of(potentialParent);
     else {
-      final var parent = potentialParent.getParentFile();
+      final File parent = potentialParent.getParentFile();
       if (parent == null)
         return java.util.Optional.empty();
       else
