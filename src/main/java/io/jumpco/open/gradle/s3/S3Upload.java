@@ -290,16 +290,18 @@ public class S3Upload extends DefaultTask {
       if (getKey() != null || getFile() != null || getSourceDir() != null) {
         throw new GradleException("Invalid parameters: [key, file, sourceDir] are not valid for S3 Upload fileCollection");
       }
-      getLogger().lifecycle("{}:filecollection → s3://{}/{}",
+      final ArrayList<File> files = new ArrayList<>(getFiles().getFiles());
+      final java.util.Optional<File> commonParent = findCommonParent(files);
+      if(commonParent.isEmpty())
+        throw new IllegalArgumentException("Couldn't find common prefix for the provided files");
+      final File dir = commonParent.get();
+      getLogger().lifecycle("{}: files(size={} under {}) → s3://{}/{}",
               getName(),
+              files.size(),
+              dir,
               getBucket(),
               getKeyPrefix());
       if (!S3BaseConfig.isTesting()) {
-        final List<File> files = new ArrayList<>(getFiles().getFiles());
-        final java.util.Optional<File> commonParent = findCommonParent(files);
-        if(commonParent.isPresent())
-          throw new IllegalArgumentException("Couldn't find common prefix for the provided files");
-        final File dir = commonParent.get();
         if (isCompareContent() || !isOverwrite()) {
           uploadFiles(util, dir, files);
         } else {
@@ -333,12 +335,13 @@ public class S3Upload extends DefaultTask {
 
   private java.util.Optional<File> findCommonParent(final List<File> files) {
     if(files.isEmpty()) {
+      getLogger().info("{}: files is empty", getName());
       return java.util.Optional.empty();
     } else {
-      java.util.Optional<File> result = java.util.Optional.of(files.get(0));
+      java.util.Optional<File> result = java.util.Optional.of(files.get(0).getParentFile());
       for (final File file: files) {
         result = commonParent(result.get(), file);
-        if(result.isPresent())
+        if(result.isEmpty())
           return result;
       }
       return result;
