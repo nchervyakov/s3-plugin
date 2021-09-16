@@ -13,7 +13,7 @@ Add the following to your build.gradle file:
 
 ```groovy
 plugins {
-    id 'io.jumpco.open.gradle.s3' version '1.4.0'
+    id 'io.jumpco.open.gradle.s3' version '1.4.1'
 }
 ```
 
@@ -134,18 +134,18 @@ including recursive upload of all child subdirectories). Properties that apply t
 + `bucket` - S3 bucket to use *(optional, defaults to the project `s3` configured `bucket`)*
 + `awsAccessKeyId` - AWS Access Key *(optional, defaults to the project `s3` configured `awsAccessKeyId`)*
 + `awsSecretAccessKey` AWS Access Secret *(optional, defaults to the project `s3` configured `awsSecretAccessKey`)*
-+ `overwrite` - *(optional, default is `false`)*, if `true` the S3 object is created or overwritten if it already exists
-+ `compareContent` - *(optional, default is `false`)*, if `true` the s3 object content is downloaded and compared to the
-  local content. If not the same then the file is uploaded.
++ `overwrite` - *(optional, default is `false`)*, if `true` the S3 object will be overwritten if it already exists.
++ `compareContent` - *(optional, default is `false`)*, if `true`, the s3 object will be downloaded and compared to the
+  local content. If not the same then the file will be uploaded.
 + `skipError` - *(optional, default is `false`)*, if `true` will not fail on missing objects.
 
 For a single file upload:
 
 + `key` - key of S3 object to create
 + `file` - path of file to be uploaded
-+ `overwrite` - *(optional, default is `false`)*, if `true` the S3 object is created or overwritten if it already exists
-+ `compareContent` - *(optional, default is `false`)*, if `true` the s3 object content is downloaded and compared to the
-  local content. If not the same then the file is uploaded.
++ `overwrite` - *(optional, default is `false`)*, if `true` the S3 object will be overwritten if it already exists
++ `compareContent` - *(optional, default is `false`)*, if `true`, the s3 object will be downloaded and compared to the
+  local content. If not the same then the file will be uploaded.
 
 By default `S3Upload` does not overwrite the S3 object if it already exists. Set `overwrite` to `true` to upload the
 file even if it exists.

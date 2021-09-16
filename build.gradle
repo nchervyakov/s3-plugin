@@ -40,7 +40,7 @@ group = 'io.jumpco.open'
 if (project.findProperty('buildVersion') == 'LOCAL_SNAPSHOT') {
     version = 'LOCAL_SNAPSHOT'
 } else {
-    version = '1.4.0'
+    version = '1.4.1'
 }
 
 jar {
@@ -57,13 +57,9 @@ repositories {
     mavenCentral()
 }
 
-ext {
-    amazonAWSVersion = '1.11.858'
-}
-
 dependencies {
     compileOnly gradleApi()
-    implementation 'com.amazonaws:aws-java-sdk-s3:' + amazonAWSVersion
+    implementation "com.amazonaws:aws-java-sdk-s3:$awsSdkVersion"
     implementation 'commons-io:commons-io:2.8.0'
 
     testCompileOnly localGroovy()
@@ -74,7 +70,7 @@ dependencies {
     gradleTest 'org.spockframework:spock-core:2.0-groovy-3.0'
     gradleTest 'org.assertj:assertj-core:3.6.2'
     gradleTest 'junit:junit:4.13'
-    gradleTest 'com.amazonaws:aws-java-sdk-s3:' + amazonAWSVersion
+    gradleTest "com.amazonaws:aws-java-sdk-s3:$awsSdkVersion"
     gradleTest 'commons-io:commons-io:2.8.0'
 }
 
@@ -94,7 +90,7 @@ pluginBundle {
         s3Plugin {
             displayName = 'S3 Gradle plugin'
             description = 'S3 Gradle plugin supporting upload and download'
-            tags = ['s3', 'gradle', 'plugin']
+            tags = ['s3', 'gradle', 'plugin', 'aws']
             version = project.version
         }
     }

@@ -165,7 +165,7 @@ public class S3Upload extends DefaultTask {
     this.skipError = skipError;
   }
 
-  private Set<File> findExisting(final SS3Util util){
+  private Set<File> findExisting(final SS3Util util) {
     final Set<File> existing = new HashSet<>();
     final ListObjectsV2Request req = new ListObjectsV2Request().withBucketName(getBucket()).withMaxKeys(2);
     ListObjectsV2Result result;
@@ -182,6 +182,7 @@ public class S3Upload extends DefaultTask {
     } while (result.isTruncated());
     return existing;
   }
+
   private void uploadFile(final SS3Util util, final File fileToUpload) throws IOException {
     if (!fileToUpload.exists()) {
       throw new GradleException("upload file:" + getFile() + " not found");
@@ -193,8 +194,8 @@ public class S3Upload extends DefaultTask {
       } else {
         if (isCompareContent()) {
           S3ObjectInputStream s3stream = util.getS3Client()
-                  .getObject(getBucket(), getKey())
-                  .getObjectContent();
+              .getObject(getBucket(), getKey())
+              .getObjectContent();
           File target = new File(getKey());
           getLogger().info("{}:upload:comparing:{} -> {}", getName(), target, fileToUpload);
           if (IOUtils.contentEquals(s3stream.getDelegateStream(), new FileInputStream(fileToUpload))) {
@@ -211,6 +212,7 @@ public class S3Upload extends DefaultTask {
       util.getS3Client().putObject(getBucket(), getKey(), fileToUpload);
     }
   }
+
   private void uploadFiles(final SS3Util util, final File file, final List<File> sourceFiles) throws IOException {
     final Set<File> existing = findExisting(util);
     for (File sourceFile : sourceFiles) {
@@ -218,8 +220,8 @@ public class S3Upload extends DefaultTask {
       if (existing.contains(target)) {
         if (isCompareContent()) {
           S3ObjectInputStream s3stream = util.getS3Client()
-                  .getObject(getBucket(), target.getPath())
-                  .getObjectContent();
+              .getObject(getBucket(), target.getPath())
+              .getObjectContent();
           getLogger().info("{}:upload:comparing:{} -> {}", getName(), target, sourceFile);
           if (IOUtils.contentEquals(s3stream.getDelegateStream(), new FileInputStream(sourceFile))) {
             getLogger().info("{}:upload:equals:skipping:{}", getName(), target.getPath());
@@ -241,6 +243,7 @@ public class S3Upload extends DefaultTask {
     }
 
   }
+
   @TaskAction
   public void task() throws InterruptedException, IOException {
 
@@ -250,7 +253,8 @@ public class S3Upload extends DefaultTask {
     SS3Util util = new SS3Util(getProject(), getBucket(), getAwsAccessKeyId(), getAwsSecretAccessKey());
     if (getKeyPrefix() != null && getSourceDir() != null) {
       if (getKey() != null || getFile() != null || getFiles() != null) {
-        throw new GradleException("Invalid parameters: [key, file, fileCollection] are not valid for S3 Upload directory");
+        throw new GradleException(
+            "Invalid parameters: [key, file, fileCollection] are not valid for S3 Upload directory");
       }
       getLogger().lifecycle("{}:directory:{} → s3://{}/{}",
           getName(),
@@ -288,27 +292,29 @@ public class S3Upload extends DefaultTask {
       }
     } else if (getKeyPrefix() != null && getFiles() != null) {
       if (getKey() != null || getFile() != null || getSourceDir() != null) {
-        throw new GradleException("Invalid parameters: [key, file, sourceDir] are not valid for S3 Upload fileCollection");
+        throw new GradleException(
+            "Invalid parameters: [key, file, sourceDir] are not valid for S3 Upload fileCollection");
       }
       final ArrayList<File> files = new ArrayList<>(getFiles().getFiles());
       final java.util.Optional<File> commonParent = findCommonParent(files);
-      if(commonParent.isEmpty())
+      if (!commonParent.isPresent()) {
         throw new IllegalArgumentException("Couldn't find common prefix for the provided files");
+      }
       final File dir = commonParent.get();
       getLogger().lifecycle("{}: files(size={} under {}) → s3://{}/{}",
-              getName(),
-              files.size(),
-              dir,
-              getBucket(),
-              getKeyPrefix());
+          getName(),
+          files.size(),
+          dir,
+          getBucket(),
+          getKeyPrefix());
       if (!S3BaseConfig.isTesting()) {
         if (isCompareContent() || !isOverwrite()) {
           uploadFiles(util, dir, files);
         } else {
           Transfer transfer = TransferManagerBuilder.standard()
-                  .withS3Client(util.getS3Client())
-                  .build()
-                  .uploadFileList(getBucket(), getKeyPrefix(), dir, files);
+              .withS3Client(util.getS3Client())
+              .build()
+              .uploadFileList(getBucket(), getKeyPrefix(), dir, files);
           ProgressListener listener = new S3Listener(transfer, getLogger());
           transfer.addProgressListener(listener);
           transfer.waitForCompletion();
@@ -334,22 +340,23 @@ public class S3Upload extends DefaultTask {
   }
 
   private java.util.Optional<File> findCommonParent(final List<File> files) {
-    if(files.isEmpty()) {
+    if (files.isEmpty()) {
       getLogger().info("{}: files is empty", getName());
       return java.util.Optional.empty();
     } else {
       java.util.Optional<File> result = java.util.Optional.of(files.get(0).getParentFile());
-      for (final File file: files) {
+      for (final File file : files) {
         result = commonParent(result.get(), file);
-        if(result.isEmpty())
+        if (result.isPresent()) {
           return result;
+        }
       }
       return result;
     }
   }
 
   private java.util.Optional<File> commonParent(final File potentialParent, final File file) {
-    if(file.getAbsolutePath().startsWith(potentialParent.getAbsolutePath()))
+    if (file.getAbsolutePath().startsWith(potentialParent.getAbsolutePath()))
       return java.util.Optional.of(potentialParent);
     else {
       final File parent = potentialParent.getParentFile();
