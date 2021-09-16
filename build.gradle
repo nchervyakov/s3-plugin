@@ -43,6 +43,9 @@ if (project.findProperty('buildVersion') == 'LOCAL_SNAPSHOT') {
     version = '1.4.1'
 }
 
+targetCompatibility = JavaVersion.VERSION_1_8
+sourceCompatibility = JavaVersion.VERSION_1_8
+
 jar {
     manifest {
         attributes([
