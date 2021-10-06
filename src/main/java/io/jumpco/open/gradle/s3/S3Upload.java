@@ -57,6 +57,8 @@ public class S3Upload extends DefaultTask {
   @Input
   private boolean skipError;
 
+  private final int batchSize = 100;
+
   @Internal
   @Override
   public String getGroup() {
@@ -167,7 +169,10 @@ public class S3Upload extends DefaultTask {
 
   private Set<File> findExisting(final SS3Util util) {
     final Set<File> existing = new HashSet<>();
-    final ListObjectsV2Request req = new ListObjectsV2Request().withBucketName(getBucket()).withMaxKeys(2);
+    final ListObjectsV2Request req = new ListObjectsV2Request()
+            .withBucketName(getBucket())
+            .withMaxKeys(batchSize)
+            .withPrefix(keyPrefix);
     ListObjectsV2Result result;
     do {
       result = util.getS3Client().listObjectsV2(req);
