@@ -93,7 +93,7 @@ pluginBundle {
         s3Plugin {
             displayName = 'S3 Gradle plugin'
             description = 'S3 Gradle plugin supporting upload and download'
-            tags = ['s3', 'gradle', 'plugin', 'aws']
+            tags = ['s3', 'aws', 'upload', 'download']
             version = project.version
         }
     }
