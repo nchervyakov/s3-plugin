@@ -70,11 +70,11 @@ dependencies {
     testImplementation 'org.assertj:assertj-core:3.6.2'
     testCompileOnly gradleTestKit()
     testImplementation 'org.spockframework:spock-core:2.0-groovy-3.0'
-    gradleTest 'org.spockframework:spock-core:2.0-groovy-3.0'
-    gradleTest 'org.assertj:assertj-core:3.6.2'
-    gradleTest 'junit:junit:4.13'
-    gradleTest "com.amazonaws:aws-java-sdk-s3:$awsSdkVersion"
-    gradleTest 'commons-io:commons-io:2.8.0'
+//    gradleTest 'org.spockframework:spock-core:2.0-groovy-3.0'
+//    gradleTest 'org.assertj:assertj-core:3.6.2'
+//    gradleTest 'junit:junit:4.13'
+//    gradleTest "com.amazonaws:aws-java-sdk-s3:$awsSdkVersion"
+//    gradleTest 'commons-io:commons-io:2.8.0'
 }
 
 gradlePlugin {
