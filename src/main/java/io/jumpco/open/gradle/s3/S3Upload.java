@@ -1,20 +1,3 @@
-/*
-    Copyright 2019-2021 Open JumpCO
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-    documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-    the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-    and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-    THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-    CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-    DEALINGS IN THE SOFTWARE.
- */
 package io.jumpco.open.gradle.s3;
 
 import com.amazonaws.event.ProgressListener;
@@ -28,11 +11,8 @@ import org.apache.commons.io.IOUtils;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.FileCollection;
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputFiles;
-import org.gradle.api.tasks.Internal;
-import org.gradle.api.tasks.Optional;
-import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.tasks.*;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -86,6 +66,8 @@ public class S3Upload extends DefaultTask {
 
     @Input
     private boolean skipError;
+
+  private final int batchSize = 100;
 
     @Internal
     @Override
@@ -197,7 +179,10 @@ public class S3Upload extends DefaultTask {
 
     private Set<File> findExisting(final SS3Util util) {
         final Set<File> existing = new HashSet<>();
-        final ListObjectsV2Request req = new ListObjectsV2Request().withBucketName(getBucket()).withMaxKeys(2);
+    final ListObjectsV2Request req = new ListObjectsV2Request()
+            .withBucketName(getBucket())
+            .withMaxKeys(batchSize)
+            .withPrefix(keyPrefix);
         ListObjectsV2Result result;
         do {
             result = util.getS3Client().listObjectsV2(req);
