@@ -138,6 +138,7 @@ including recursive upload of all child subdirectories). Properties that apply t
 + `compareContent` - *(optional, default is `false`)*, if `true`, the s3 object will be downloaded and compared to the
   local content. If not the same then the file will be uploaded.
 + `skipError` - *(optional, default is `false`)*, if `true` will not fail on missing objects.
++ `batchSize` - *(optional, default is 100)*, Improve upload speed.
 
 For a single file upload:
 
