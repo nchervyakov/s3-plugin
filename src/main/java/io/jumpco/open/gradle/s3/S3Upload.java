@@ -85,7 +85,7 @@ public class S3Upload extends DefaultTask {
     private boolean skipError;
     @Optional
     @Input
-    private int batchSize = 100;
+    private Integer batchSize = 100;
 
     @Internal
     @Override
@@ -195,11 +195,11 @@ public class S3Upload extends DefaultTask {
         this.skipError = skipError;
     }
 
-    int getBatchSize() {
+    Integer getBatchSize() {
         return batchSize;
     }
 
-    void setBatchSize(int batchSize) {
+    void setBatchSize(Integer batchSize) {
         this.batchSize = batchSize;
     }
 
