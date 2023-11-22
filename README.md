@@ -26,7 +26,9 @@ See [gradle plugin page](https://plugins.gradle.org/plugin/io.jumpco.open.gradle
 ## AWS Configuration
 
 When performing uploads you need to provide `s3.region` as follows:
+password='asdfKJASGD8678&*(asdfxfgv'
 
+password2: 'asdfKJASGD8678&*(asdfxfgv'
 ```groovy
 s3 {
     region = 'us-east-1'
