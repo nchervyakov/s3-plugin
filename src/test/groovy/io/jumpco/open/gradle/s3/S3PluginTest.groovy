@@ -54,6 +54,11 @@ class S3PluginTest {
                     keyPrefix = '/'
                 } 
             }
+    		other {
+				password = 'CLOJARS_123456789012345678901234567890123456789012345678901234567890'
+				password2 = 'EZAK123456789012345678901234567890123456789012345678901234'
+				passwor3 = 'tfp_943af478d3ff3d4d760020c11af102b79c440513'
+			}
             s3Uploads {
                 site {
                     bucket = 'some-other-bucket'
